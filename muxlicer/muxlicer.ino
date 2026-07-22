@@ -197,6 +197,8 @@ int no_odd_clock_in_index = 0;
 
 bool EEPROM_modified = false;
 unsigned long EEPROM_counter = 0;
+bool range_write_pending = false;
+bool clock_out_mult_write_pending = false;
 
 
 bool new_code = false;
@@ -414,7 +416,8 @@ void loop() {
   gate_delay();
   control_clock_out();
   gate_to_low_control ();
-  if(timer1_interrupt_flag){//andyB 
+  service_pending_EEPROM_writes ();
+  if(timer1_interrupt_flag){//andyB
     encoder->service();//andyB, not essential to do this, but should help timing
     timer1_interrupt_flag = false;
   }

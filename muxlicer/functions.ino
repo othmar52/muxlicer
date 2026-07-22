@@ -4,7 +4,8 @@ void read_clock_detect_input () {
     if (first_no_clock_detect) {
       first_no_clock_detect = false;
       clk_in_mult = 0;
-      write_clock_in_mult_to_EEPROM ();
+      EEPROM_modified = true;      /// defer the write; see service_pending_EEPROM_writes()
+      EEPROM_counter = current_micros;
     }
   }
   else {
@@ -199,14 +200,6 @@ void read_encoder () {
       }
     }
   }
-  if (EEPROM_modified) {
-    if (current_micros > EEPROM_counter + 3000000) {
-      EEPROM_modified = false;
-      write_tempo_to_EEPROM ();
-      write_clock_in_mult_to_EEPROM ();
-    }
-  }
-
 }
 
 
@@ -252,11 +245,11 @@ void read_internal_clock_tap () {
     bitWrite(encoder_button_state, 1, 0);
     if (range_changed) {
       range_changed = false;
-      write_range_to_EEPROM();
+      range_write_pending = true;      /// defer the write; see service_pending_EEPROM_writes()
     }
     if (clk_out_mul_changed) {
       clk_out_mul_changed = false;
-      write_clock_out_mult_to_EEPROM();
+      clock_out_mult_write_pending = true;
     }
   }
 }
@@ -315,6 +308,28 @@ void write_no_odd_clocks_to_EEPROM () {
 
 void write_no_clock_when_stop_to_EEPROM () {
   EEPROM.write(15, no_clock_out_when_stop);
+}
+
+void service_pending_EEPROM_writes () {
+  /// EEPROM.write blocks ~3.3 ms per byte; a stall that long delays step,
+  /// gate and clock out timing, so pending writes are only performed while
+  /// the sequencer is stopped.
+  if (start_on) return;
+  if (EEPROM_modified) {
+    if (current_micros > EEPROM_counter + 3000000) {
+      EEPROM_modified = false;
+      write_tempo_to_EEPROM ();
+      write_clock_in_mult_to_EEPROM ();
+    }
+  }
+  if (range_write_pending) {
+    range_write_pending = false;
+    write_range_to_EEPROM ();
+  }
+  if (clock_out_mult_write_pending) {
+    clock_out_mult_write_pending = false;
+    write_clock_out_mult_to_EEPROM ();
+  }
 }
 
 
