@@ -452,6 +452,12 @@ void read_one_shot_reset_toggle () {
 
 void read_address () {
   ///// ADDRESS CV/pot
+  /// analogRead blocks for ~112 us; reading once per loop pass dominated
+  /// the loop time and with it the external clock processing latency.
+  /// Reading every 2 ms (500 Hz) is still plenty for the address CV.
+  static unsigned long last_address_read = 0;
+  if (current_micros - last_address_read < 2000) return;
+  last_address_read = current_micros;
   address_value = analogRead(address_input);
   switch (address_value) {
     case 0 ... 112:
