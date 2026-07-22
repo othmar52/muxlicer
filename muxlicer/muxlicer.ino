@@ -15,6 +15,21 @@ void timerIsr() {
   timer1_interrupt_flag = true;// so just flag it needs to be done
 }
 
+/// External clock edge capture via pin change interrupt (PD4 / PCINT20).
+/// The clock input used to be polled in loop(), so edge detection jittered
+/// by one loop pass and pulses could be missed entirely during blocking
+/// calls (e.g. EEPROM writes). The ISR only stores a timestamp; all
+/// processing stays in read_clock().
+volatile bool ext_clock_edge = false;
+volatile unsigned long ext_clock_edge_stamp = 0;
+
+ISR(PCINT2_vect) {
+  if (!(PIND & (1 << PIND4))) {    /// falling pin edge = incoming clock pulse (input is inverted)
+    ext_clock_edge_stamp = micros();
+    ext_clock_edge = true;
+  }
+}
+
 
 //// PORTS DEFINITION
 
@@ -145,7 +160,6 @@ bool second_gate = false;
 
 bool no_gate_or_full = false;
 
-bool external_clock_first = false;
 bool reset_first = false;
 bool reset_state = false;
 bool one_shot_state = false;
@@ -231,6 +245,10 @@ void setup() {
   pinMode (start_stop_input, INPUT_PULLUP);
   pinMode (one_shot_switch, INPUT_PULLUP);
   pinMode (clock_input, INPUT_PULLUP);
+
+  /// pin change interrupt for the external clock input
+  PCICR |= (1 << PCIE2);      /// enable pin change interrupt group 2 (PORTD)
+  PCMSK2 |= (1 << PCINT20);   /// PD4 = clock_input
 
 
   pinMode (encoder_button, INPUT_PULLUP);

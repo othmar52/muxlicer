@@ -682,10 +682,18 @@ void read_clock () {
   current_micros = micros();
   
   if (clock_detect) {
-    if ((!digitalRead(clock_input)) && (external_clock_first == false)) {                      /// IF THE CLOCK IS NOT HIGH AND IT IS THE FIRST TIME IT IS,
-      ext_clock = current_micros - old_external_clock;
-      old_external_clock =  current_micros;
-      external_clock_first = true;
+    bool clock_edge = false;
+    unsigned long clock_edge_stamp = 0;
+    noInterrupts();
+    if (ext_clock_edge) {                                     /// edge captured by the pin change ISR
+      ext_clock_edge = false;
+      clock_edge_stamp = ext_clock_edge_stamp;
+      clock_edge = true;
+    }
+    interrupts();
+    if (clock_edge) {
+      ext_clock = clock_edge_stamp - old_external_clock;
+      old_external_clock = clock_edge_stamp;
 
       if (one_shot_start) {
         one_shot_start = false;
@@ -704,7 +712,7 @@ void read_clock () {
       }
       calculate_clock_out ();                     /// count the tics to create the clock out bearing in mind the clock out multiplier, triggering
       if (clock_out_mult > 0) {                 /// CLOCK OUT MULTIPLIER
-        old_clock_out = current_micros;
+        old_clock_out = clock_edge_stamp;
         if( clock_running ){//andyB ADDED CONDITION
           next_clock_flag = true;
           //digitalWrite(clock_out, LOW);
@@ -722,7 +730,7 @@ void read_clock () {
           //
           clock_out_state = HIGH;
           //
-          old_clock_out = current_micros;
+          old_clock_out = clock_edge_stamp;
           if( clock_running ){//andyB ADDED CONDITION
             next_clock_flag = true;
             //digitalWrite(clock_out, LOW);
@@ -733,7 +741,7 @@ void read_clock () {
 
       }
       else {                                   //// CLOCK OUT NEUTRAL
-        old_clock_out = current_micros;
+        old_clock_out = clock_edge_stamp;
         if( clock_running ){//andyB ADDED CONDITION
           next_clock_flag = true;
           //digitalWrite(clock_out, LOW);
@@ -752,9 +760,9 @@ void read_clock () {
           gate_out_window = ext_clock;
           next_address_flag = true;
           next_step_flag = true;
-          old_micros_mult = current_micros;
-          gate_counter_old = current_micros;
-          next_address_stamp = current_micros;
+          old_micros_mult = clock_edge_stamp;
+          gate_counter_old = clock_edge_stamp;
+          next_address_stamp = clock_edge_stamp;
           repetitions_counter = 0;
         }
         else if (clk_in_mult < 0) {
@@ -765,9 +773,9 @@ void read_clock () {
             division_counter = 0;
             next_address_flag = true;
             next_step_flag = true;
-            old_micros_mult = current_micros;
-            gate_counter_old = current_micros;
-            next_address_stamp = current_micros;
+            old_micros_mult = clock_edge_stamp;
+            gate_counter_old = clock_edge_stamp;
+            next_address_stamp = clock_edge_stamp;
           }
         }
         else {
@@ -775,9 +783,9 @@ void read_clock () {
           gate_out_window = ext_clock_mult;
           next_address_flag = true;
           next_step_flag = true;
-          old_micros_mult = current_micros;
-          gate_counter_old = current_micros;
-          next_address_stamp = current_micros;
+          old_micros_mult = clock_edge_stamp;
+          gate_counter_old = clock_edge_stamp;
+          next_address_stamp = clock_edge_stamp;
         }
       }
     }
@@ -847,8 +855,6 @@ void read_clock () {
       }
     }
   }
-  if ((digitalRead(clock_input)) && (external_clock_first)) external_clock_first = 0;
-
 }
 
 void event_control () {
