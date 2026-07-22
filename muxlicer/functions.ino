@@ -395,10 +395,14 @@ void read_start_toggle () {
 void read_one_shot_reset_input () {
   /// RESET CONTROL
 
-  reset_state = digitalRead(reset_input);
-  if ((reset_state == false) && (reset_first == false) ) {                     /// reset_input jack
-
-    reset_first = true;
+  bool do_reset = false;
+  noInterrupts();
+  if (reset_edge) {                                            /// edge captured by the pin change ISR
+    reset_edge = false;
+    do_reset = true;
+  }
+  interrupts();
+  if (do_reset) {                                              /// reset_input jack
     if (start_on) {
       address_counter = 7;
       if (one_shot_state) one_shot_start = true;
@@ -415,9 +419,6 @@ void read_one_shot_reset_input () {
 
       division_counter = -clk_in_mult;
     }
-  }
-  if ((reset_state == true) && (reset_first == true)) {
-    reset_first = false;
   }
 }
 

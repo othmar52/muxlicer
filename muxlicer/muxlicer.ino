@@ -30,6 +30,17 @@ ISR(PCINT2_vect) {
   }
 }
 
+/// Reset input edge capture via pin change interrupt (PC3 / PCINT11),
+/// for the same reason as the external clock above: a polled reset pulse
+/// could be missed during blocking calls.
+volatile bool reset_edge = false;
+
+ISR(PCINT1_vect) {
+  if (!(PINC & (1 << PINC3))) {    /// falling pin edge = incoming reset pulse (input is inverted)
+    reset_edge = true;
+  }
+}
+
 
 //// PORTS DEFINITION
 
@@ -160,8 +171,6 @@ bool second_gate = false;
 
 bool no_gate_or_full = false;
 
-bool reset_first = false;
-bool reset_state = false;
 bool one_shot_state = false;
 bool one_shot_first = false;
 bool one_shot_start = false;
@@ -248,9 +257,11 @@ void setup() {
   pinMode (one_shot_switch, INPUT_PULLUP);
   pinMode (clock_input, INPUT_PULLUP);
 
-  /// pin change interrupt for the external clock input
+  /// pin change interrupts for the external clock and reset inputs
   PCICR |= (1 << PCIE2);      /// enable pin change interrupt group 2 (PORTD)
   PCMSK2 |= (1 << PCINT20);   /// PD4 = clock_input
+  PCICR |= (1 << PCIE1);      /// enable pin change interrupt group 1 (PORTC)
+  PCMSK1 |= (1 << PCINT11);   /// PC3 (A3) = reset_input
 
 
   pinMode (encoder_button, INPUT_PULLUP);
