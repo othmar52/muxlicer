@@ -405,6 +405,8 @@ void read_one_shot_reset_input () {
   if (do_reset) {                                              /// reset_input jack
     if (start_on) {
       address_counter = 7;
+      division_counter = -clk_in_mult;   /// re-arm the clock divider so the next clock advances to step 1 right away
+      gate_out_window = 0;               /// hold multiplied steps until the next clock edge re-opens the window
       if (one_shot_state) one_shot_start = true;
     }
     else {
@@ -429,6 +431,8 @@ void read_one_shot_reset_toggle () {
     one_shot_first = true;
     if (start_on) {
       address_counter = 7;
+      division_counter = -clk_in_mult;   /// re-arm the clock divider so the next clock advances to step 1 right away
+      gate_out_window = 0;               /// hold multiplied steps until the next clock edge re-opens the window
       if (one_shot_state) one_shot_start = true;
     }
     else {
@@ -442,8 +446,6 @@ void read_one_shot_reset_toggle () {
       }
       division_counter = -clk_in_mult;
     }
-
-    //division_counter = -clk_in_mult;
   }
   if ((digitalRead(one_shot_switch)) && (one_shot_first == true)) {
     one_shot_first = false;
