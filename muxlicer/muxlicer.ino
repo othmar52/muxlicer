@@ -24,7 +24,7 @@ volatile bool ext_clock_edge = false;
 volatile unsigned long ext_clock_edge_stamp = 0;
 
 ISR(PCINT2_vect) {
-  if (!(PIND & (1 << PIND4))) {    /// falling pin edge = incoming clock pulse (input is inverted)
+  if (!(PIND & (1 << PIND4))) {    /// falling edge of the incoming clock (non-inverting input) - same edge the polled code used
     ext_clock_edge_stamp = micros();
     ext_clock_edge = true;
   }
@@ -36,7 +36,7 @@ ISR(PCINT2_vect) {
 volatile bool reset_edge = false;
 
 ISR(PCINT1_vect) {
-  if (!(PINC & (1 << PINC3))) {    /// falling pin edge = incoming reset pulse (input is inverted)
+  if (!(PINC & (1 << PINC3))) {    /// rising edge of the incoming reset (input stage inverts) - same edge the polled code used
     reset_edge = true;
   }
 }
